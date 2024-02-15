@@ -1,0 +1,42 @@
+name: 每8个小时更新一次reference
+on:
+  schedule:
+    - cron: '21 */8 * * *' # 定时任务
+  workflow_dispatch:       # 手动运行
+
+env: # 设置环境变量
+  TZ: Asia/Shanghai # 时区（设置时区可使页面中的`最近更新时间`使用时区时间）
+
+jobs:
+  build: # 自定义名称
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚜 拉取最新代码
+        uses: actions/checkout@v3
+        with:
+          ref: 'main'
+          repository: 'jaywcjlove/reference'
+
+      - name: ♻️ 编译静态文件
+        run: |
+          echo -e 'REF_URL=https://refs.xxx.net/\nREF_LABEL=网站首页' > .env
+          npm install
+          npm run build
+
+      - name: 🚁 部署到服务器
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: 'root'   #ssh user name
+          port: '22' # 远程服务器ssh端口，默认22
+          server: '101.237.129.11' # 远程服务器IP
+          ssh_private_key: ${{-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACACggVfS2bah+3Fy5/K3W8aWBJR1ApafyEsugnNn0OpwgAAAJCNG4YhjRuG
+IQAAAAtzc2gtZWQyNTUxOQAAACACggVfS2bah+3Fy5/K3W8aWBJR1ApafyEsugnNn0Opwg
+AAAEBb3xeaBq2NjVJ47OOCGy8mSpVwIgTl7EWzJl26mBNz3wKCBV9LZtqH7cXLn8rdbxpY
+ElHUClp/ISy6Cc2fQ6nCAAAADXJvb3RAZWNzXzEwNzk=
+-----END OPENSSH PRIVATE KEY-----
+ }} # 认证服务器秘钥对的私钥
+          local_path: './dist/*'  # 对应我们项目打包后的静态文件路径
+          remote_path: '/data/www/refs.xxx.net' # 服务器上的路径
+          delete_remote_files: true
